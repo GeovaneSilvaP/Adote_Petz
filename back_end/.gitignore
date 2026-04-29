@@ -1,0 +1,52 @@
+# Dependências
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.*.local
+
+# Build (TypeScript)
+dist/
+build/
+
+# Cache
+.cache/
+.tmp/
+.temp/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# IDEs / Editores
+.vscode/
+.idea/
+
+# Arquivos do TS
+*.tsbuildinfo
+
+# Banco de dados local (caso use arquivos)
+*.sqlite
+*.sqlite3
+
+# Uploads (se tiver imagens locais)
+public/uploads/
+
+# Testes
+coverage/
+
+# Configs sensíveis
+config/*.json
+
+# Arquivos temporários
+*.tmp
+*.swp
