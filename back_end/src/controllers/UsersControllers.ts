@@ -1,7 +1,11 @@
 import { Users } from "../models/Users";
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
+import jwt, { JwtPayload } from "jsonwebtoken";
+
+//helpers
 import { createUserToken } from "../helpers/create-user-token";
+import { getToken } from "../helpers/get-token";
 
 export class UserControllers {
   static async register(req: Request, res: Response) {
@@ -105,5 +109,45 @@ export class UserControllers {
       res.status(422).json({ message: "Senha Inválida!" });
       return;
     }
+  }
+
+  static async checkUser(req: Request, res: Response) {
+    let currentUser;
+
+    if (req.headers.authorization) {
+      const token = getToken(req);
+
+      if (!token) {
+        return res.status(401).json({ message: "Acesso negado!" });
+      }
+
+      try {
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET as string,
+        ) as JwtPayload;
+
+        const user = await Users.findById(decoded.id).select("-password");
+
+        currentUser = user;
+      } catch (err) {
+        return res.status(401).json({ message: "Token inválido!" });
+      }
+    }
+
+    res.status(200).send(currentUser);
+  }
+
+  static async getUsersById(req: Request, res: Response) {
+    const id = req.params.id;
+
+    const user = await Users.findById(id).select("-password");
+
+    if (!user) {
+      res.status(422).json({ message: "Usuário não encontrado!" });
+      return;
+    }
+
+    res.status(200).json(user);
   }
 }
