@@ -150,4 +150,8 @@ export class UserControllers {
 
     res.status(200).json(user);
   }
+
+  static async editUsers(req: Request, res: Response) {
+    res.status(200).json({ message: "Deu certo update!" });
+  }
 }
