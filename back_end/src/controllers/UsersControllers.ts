@@ -6,6 +6,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 //helpers
 import { createUserToken } from "../helpers/create-user-token";
 import { getToken } from "../helpers/get-token";
+import { getUserByToken } from "../helpers/get-user-by-token";
 
 export class UserControllers {
   static async register(req: Request, res: Response) {
@@ -152,6 +153,69 @@ export class UserControllers {
   }
 
   static async editUsers(req: Request, res: Response) {
-    res.status(200).json({ message: "Deu certo update!" });
+    const { name, email, phone, password, confirmpassword } = req.body;
+
+    const token = getToken(req);
+
+    if (!token) {
+      return res.status(401).json({ message: "Acesso negado!" });
+    }
+
+    const user = await getUserByToken(token);
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado!" });
+    }
+
+    // NAME
+    if (!name) {
+      return res.status(422).json({ message: "O nome é obrigatório" });
+    }
+    user.name = name;
+
+    // EMAIL
+    if (!email) {
+      return res.status(422).json({ message: "O email é obrigatório" });
+    }
+
+    const userExists = await Users.findOne({ email });
+
+    if (user.email !== email && userExists) {
+      return res.status(422).json({
+        message: "Por favor, utilize outro e-mail!",
+      });
+    }
+
+    user.email = email;
+
+    // PHONE
+    if (!phone) {
+      return res.status(422).json({ message: "O telefone é obrigatório" });
+    }
+    user.phone = phone;
+
+    // PASSWORD (opcional)
+    if (password) {
+      if (password !== confirmpassword) {
+        return res.status(422).json({
+          message: "As senhas precisam ser iguais!",
+        });
+      }
+
+      const salt = await bcrypt.genSalt(12);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      user.password = passwordHash;
+    }
+
+    try {
+      await user.save();
+
+      res.status(200).json({
+        message: "Usuário atualizado com sucesso!",
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao atualizar usuário" });
+    }
   }
 }
