@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 
 import { connectDB } from "./db/conn";
 import usersRoutes from "./routes/UsersRoutes";
+import petsRoutes from "./routes/PetsRoutes";
 
 const app = express();
 const port = 5000;
@@ -24,6 +25,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 //Routes
 app.use("/users", usersRoutes);
+app.use("/pets", petsRoutes);
 
 app.listen(port, () => {
   console.log(`Servidor rodando na porta: ${port}`);

@@ -167,6 +167,14 @@ export class UserControllers {
       return res.status(404).json({ message: "Usuário não encontrado!" });
     }
 
+    if (req.file) {
+      user.image = req.file.filename;
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado!" });
+    }
+
     // NAME
     if (!name) {
       return res.status(422).json({ message: "O nome é obrigatório" });
