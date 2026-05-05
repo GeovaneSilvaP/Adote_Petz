@@ -36,7 +36,7 @@ export const imageUpload = multer({
   storage: imageStorage,
 
   fileFilter(req, file, cb) {
-    if (!file.originalname.startsWith("image/")) {
+    if (!file.mimetype.startsWith("image/")) {
       return cb(new Error("Por favor, envie apenas imagens!"));
     }
 

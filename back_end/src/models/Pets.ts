@@ -12,7 +12,7 @@ export const Pets = mongoose.model(
         type: Number,
         required: true,
       },
-      weigth: {
+      weight: {
         type: Number,
         required: true,
       },
@@ -22,6 +22,10 @@ export const Pets = mongoose.model(
       },
       available: {
         type: Boolean,
+      },
+      images: {
+        type: [String],
+        required: true,
       },
       user: Object,
       adopter: Object,
