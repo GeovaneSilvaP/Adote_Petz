@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Pets } from "../models/Pets";
+import mongoose from "mongoose";
 
 // helpers
 import { getToken } from "../helpers/get-token";
@@ -89,5 +90,120 @@ export class PetsController {
     const pets = await Pets.find().sort("-createdAt");
 
     res.status(200).json({ pets: pets });
+  }
+
+  static async getAllUsersPets(req: Request, res: Response) {
+    const token = getToken(req);
+
+    if (!token) {
+      return res.status(404).json({ message: "Acesso negado!" });
+    }
+
+    const user = await getUserByToken(token);
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado!" });
+    }
+
+    const pets = await Pets.find({ "user._id": user._id }).sort("-createdAt");
+
+    res.status(200).json({ pets });
+  }
+
+  static async getAllUsersAdoptions(req: Request, res: Response) {
+    const token = getToken(req);
+
+    if (!token) {
+      return res.status(404).json({ message: "Acesso negado!" });
+    }
+
+    const user = await getUserByToken(token);
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado!" });
+    }
+
+    const pets = await Pets.find({ "adopter._id": user._id }).sort(
+      "-createdAt",
+    );
+
+    res.status(200).json({ pets });
+  }
+
+  static async getPetById(req: Request, res: Response) {
+    const { id } = req.params;
+
+    // valida se existe e é string
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({ message: "ID inválido!" });
+    }
+
+    // valida formato ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(422).json({ message: "ID inválido!" });
+    }
+
+    try {
+      const pet = await Pets.findById(id);
+
+      if (!pet) {
+        return res.status(404).json({ message: "Pet não encontrado!" });
+      }
+
+      res.status(200).json(pet);
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao buscar pet" });
+    }
+  }
+
+  static async removePetById(req: Request, res: Response) {
+    const { id } = req.params;
+
+    // valida id
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({ message: "ID inválido!" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(422).json({ message: "ID inválido!" });
+    }
+
+    try {
+      const pet = await Pets.findById(id);
+
+      if (!pet) {
+        return res.status(404).json({ message: "Pet não encontrado!" });
+      }
+
+      // TOKEN
+      const token = getToken(req);
+
+      if (!token) {
+        return res.status(401).json({ message: "Acesso negado!" });
+      }
+
+      // USER
+      const user = await getUserByToken(token);
+
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado!" });
+      }
+
+      // VERIFICA DONO
+      if (pet.user._id.toString() !== user._id.toString()) {
+        return res.status(403).json({
+          message: "Usuário não autorizado!",
+        });
+      }
+
+      // DELETE
+      await Pets.findByIdAndDelete(id);
+
+      res.status(200).json({
+        message: "Pet removido com sucesso!",
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao remover pet" });
+    }
   }
 }
