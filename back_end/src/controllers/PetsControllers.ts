@@ -388,4 +388,80 @@ export class PetsController {
       });
     }
   }
+
+  static async concludeAdoption(req: Request, res: Response) {
+  const { id } = req.params;
+
+  // VALIDAR ID
+  if (!id || typeof id !== "string") {
+    return res.status(400).json({ message: "ID inválido!" });
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(422).json({ message: "ID inválido!" });
+  }
+
+  try {
+    const pet = await Pets.findById(id);
+
+    if (!pet) {
+      return res.status(404).json({
+        message: "Pet não encontrado!",
+      });
+    }
+
+    // TOKEN
+    const token = getToken(req);
+
+    if (!token) {
+      return res.status(401).json({
+        message: "Acesso negado!",
+      });
+    }
+
+    // USER
+    const user = await getUserByToken(token);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Usuário não encontrado!",
+      });
+    }
+
+    // VERIFICA DONO
+    if (pet.user._id.toString() !== user._id.toString()) {
+      return res.status(403).json({
+        message: "Usuário não autorizado!",
+      });
+    }
+
+    // VERIFICA SE JÁ FOI ADOTADO
+    if (!pet.available) {
+      return res.status(422).json({
+        message: "Este pet já foi adotado!",
+      });
+    }
+
+    // VERIFICA SE EXISTE ADOTANTE
+    if (!pet.adopter) {
+      return res.status(422).json({
+        message: "Não há um adotante para este pet!",
+      });
+    }
+
+    // FINALIZA ADOÇÃO
+    pet.available = false;
+
+    await pet.save();
+
+    res.status(200).json({
+      message:
+        "Parabéns! O ciclo de adoção foi finalizado com sucesso!",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Erro ao finalizar adoção",
+    });
+  }
+}
 }
