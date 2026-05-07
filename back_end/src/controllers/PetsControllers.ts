@@ -206,4 +206,186 @@ export class PetsController {
       res.status(500).json({ message: "Erro ao remover pet" });
     }
   }
+
+  static async updatePet(req: Request, res: Response) {
+    const { id } = req.params;
+
+    const { name, age, weight, color, available } = req.body;
+
+    const images = req.files;
+
+    const updatedData: any = {};
+
+    // VALIDAR ID
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({ message: "ID inválido!" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(422).json({ message: "ID inválido!" });
+    }
+
+    try {
+      const pet = await Pets.findById(id);
+
+      if (!pet) {
+        return res.status(404).json({ message: "Pet não encontrado!" });
+      }
+
+      // TOKEN
+      const token = getToken(req);
+
+      if (!token) {
+        return res.status(401).json({ message: "Acesso negado!" });
+      }
+
+      // USER
+      const user = await getUserByToken(token);
+
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado!" });
+      }
+
+      // VERIFICA DONO
+      if (pet.user._id.toString() !== user._id.toString()) {
+        return res.status(403).json({
+          message: "Usuário não autorizado!",
+        });
+      }
+
+      // VALIDATIONS
+      if (!name) {
+        return res.status(422).json({
+          message: "O nome é obrigatório!",
+        });
+      }
+
+      updatedData.name = name;
+
+      if (!age) {
+        return res.status(422).json({
+          message: "A idade é obrigatória!",
+        });
+      }
+
+      updatedData.age = age;
+
+      if (!weight) {
+        return res.status(422).json({
+          message: "O peso é obrigatório!",
+        });
+      }
+
+      updatedData.weight = weight;
+
+      if (!color) {
+        return res.status(422).json({
+          message: "A cor é obrigatória!",
+        });
+      }
+
+      updatedData.color = color;
+
+      updatedData.available = available;
+
+      // IMAGENS
+      if (images && (images as Express.Multer.File[]).length > 0) {
+        updatedData.images = [];
+
+        (images as Express.Multer.File[]).forEach((image) => {
+          updatedData.images.push(image.filename);
+        });
+      }
+
+      // UPDATE
+      await Pets.findByIdAndUpdate(id, updatedData);
+
+      res.status(200).json({
+        message: "Pet atualizado com sucesso!",
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: "Erro ao atualizar pet",
+      });
+    }
+  }
+
+  static async schedule(req: Request, res: Response) {
+    const { id } = req.params;
+
+    // VALIDAR ID
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({ message: "ID inválido!" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(422).json({ message: "ID inválido!" });
+    }
+
+    try {
+      const pet = await Pets.findById(id);
+
+      if (!pet) {
+        return res.status(404).json({ message: "Pet não encontrado!" });
+      }
+
+      // verifica disponibilidade
+      if (!pet.available) {
+        return res.status(422).json({
+          message: "Este pet já foi adotado!",
+        });
+      }
+
+      // TOKEN
+      const token = getToken(req);
+
+      if (!token) {
+        return res.status(401).json({ message: "Acesso negado!" });
+      }
+
+      // USER
+      const user = await getUserByToken(token);
+
+      if (!user) {
+        return res.status(404).json({
+          message: "Usuário não encontrado!",
+        });
+      }
+
+      // VERIFICA DONO
+      if (pet.user._id.equals(user._id)) {
+        return res.status(403).json({
+          message: "Você não pode agendar uma visita com o seu próprio pet!",
+        });
+      }
+
+      // já agendado
+      if (pet.adopter) {
+        if (pet.adopter._id.equals(user._id)) {
+          return res.status(422).json({
+            message: "Você já agendou uma visita para este pet!",
+          });
+        }
+      }
+
+      // adiciona adotante
+      pet.adopter = {
+        _id: user._id,
+        name: user.name,
+        image: user.image,
+      };
+
+      await Pets.findByIdAndUpdate(id, {
+        adopter: pet.adopter,
+      });
+
+      res.status(200).json({
+        message: `A visita foi agendada com sucesso! Entre em contato com ${pet.user.name} pelo telefone: ${pet.user.phone}`,
+      });
+    } catch (error) {
+      res.status(500).json({
+        message: "Erro ao agendar visita",
+      });
+    }
+  }
 }
