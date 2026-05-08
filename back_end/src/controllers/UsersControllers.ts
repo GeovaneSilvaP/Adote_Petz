@@ -16,7 +16,7 @@ export class UserControllers {
     if (!name) {
       res.status(422).json({ message: "O nome é óbrigatorio" });
       return;
-    }
+    } 
 
     if (!email) {
       res.status(422).json({ message: "O email é óbrigatorio" });
